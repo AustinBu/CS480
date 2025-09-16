@@ -6,6 +6,8 @@ First version Created on 09/28/2018
 :author: micou(Zezhou Sun)
 :version: 2021.2.1
 
+completed by: Austin Bu (U96219698)
+- Completed drawLine and drawTriangle functions, with color smoothing
 """
 
 import os
@@ -170,8 +172,8 @@ class Sketch(CanvasBase):
             if self.debug > 0:
                 print("draw a triangle {} -> {} -> {}".format(self.points_r[-3], self.points_r[-2], self.points_r[-1]))
             # TODO 0: uncomment drawTriangle and comment out drawPoint when you finished the drawTriangle function 
-            # self.drawTriangle(self.buff, self.points_l[-3], self.points_l[-2], self.points_l[-1], self.doSmooth, self.doAA, self.doAAlevel, self.doTexture)
-            self.drawPoint(self.buff, self.points_r[-1])
+            self.drawTriangle(self.buff, self.points_r[-3], self.points_r[-2], self.points_r[-1], self.doSmooth, self.doAA, self.doAAlevel, self.doTexture)            
+            # self.drawPoint(self.buff, self.points_r[-1])
             self.points_r.clear()
 
     def Interrupt_Keyboard(self, keycode):
@@ -283,6 +285,7 @@ class Sketch(CanvasBase):
         # Requirements:
         #   1. Only integer is allowed in interpolate point coordinates between p1 and p2
         #   2. Float number is allowed in interpolate point color
+
         def bresenham(x1, x2, y1, y2, swap):
             dx = abs(x2 - x1)
             dy = abs(y2 - y1)
@@ -298,18 +301,21 @@ class Sketch(CanvasBase):
                 r, g, b = p1.getColor().getRGB()
                 if doSmooth:
                     r2, g2, b2 = p2.getColor().getRGB()
-                    p = abs(i - x1) / dx
-                    r += (r2 - r) * p
-                    g += (g2 - g) * p
-                    b += (b2 - b) * p
+                    progress = abs(i - x1) / dx
+                    r += (r2 - r) * progress
+                    g += (g2 - g) * progress
+                    b += (b2 - b) * progress
                 if swap:
                     self.drawPoint(buff, Point([y, i], ColorType(r, g, b)))
                 else:
                     self.drawPoint(buff, Point([i, y], ColorType(r, g, b)))
             return
+
         self.drawPoint(buff, p1)
         x1, y1 = p1.getCoords()
         x2, y2 = p2.getCoords()
+
+        # swap x and y based on slope
         if abs(x2 - x1) < abs(y2 - y1):
             bresenham(y1, y2, x1, x2, True)
         else:
@@ -347,22 +353,81 @@ class Sketch(CanvasBase):
         #   3. You should be able to support both flat shading and smooth shading, which is controlled by doSmooth
         #   4. For texture-mapped fill of triangles, it should be controlled by doTexture flag.
 
-        # r, g, b = p1.getColor().getRGB()
-        # arr = sorted([p1, p2, p3], key=lambda p: p.getCoords()[1])
-        # x1, y1 = arr[0].getCoords()
-        # x2, y2 = arr[1].getCoords()
-        # x3, y3 = arr[2].getCoords()
-        # out = None
-        # if y1 == y2:
-        #     out = arr[2]
-        # elif y2 == y3:
-        #     out = arr[0]
-        # else:
-        #     x_mid = (y2 - y1) / (y3 - y1) * (x3 - x1)
-        #     p_mid = Point([x_mid, y2], p1.getColor())
-        #     self.drawTriangle(buff, arr[0], arr[1], p_mid)
-        #     self.drawTriangle(buff, arr[1], p_mid, arr[2])
-        #     return
+        # sort points by y coordinate, ascending 
+        arr = sorted([p1, p2, p3], key=lambda p: p.getCoords()[1])
+        x1, y1 = arr[0].getCoords()
+        x2, y2 = arr[1].getCoords()
+        x3, y3 = arr[2].getCoords()
+        if y1 == y2:
+            # bottom to top
+            step = 1
+            self.drawLine(buff, p1, p2, doSmooth)
+            self.drawPoint(buff, p3)
+        elif y2 == y3:
+            # top to bottom, swap p1 and p3
+            temp = arr[0]
+            arr[0] = arr[2]
+            arr[2] = temp
+            x1, y1 = arr[0].getCoords()
+            x3, y3 = arr[2].getCoords()
+            step = -1
+            self.drawLine(buff, p2, p3, doSmooth)
+            self.drawPoint(buff, p1)
+        else:
+            # color smoothing
+            color = p1.getColor()
+            if doSmooth:
+                progress = (y2 - y1) / (y3 - y1)
+                r, g, b = tuple(
+                    np.add(
+                        np.subtract(
+                            arr[2].getColor().getRGB(), arr[0].getColor().getRGB()
+                        ) * progress, 
+                        arr[0].getColor().getRGB()
+                    )
+                )
+                color = ColorType(r, g, b)
+
+            # split triangle and call function again
+            x_mid = (y2 - y1) * (x3 - x1) / (y3 - y1) + x1
+            p_mid = Point([int(x_mid), y2], color)
+            self.drawTriangle(buff, p_mid, arr[0], arr[1], doSmooth)
+            self.drawTriangle(buff, p_mid, arr[1], arr[2], doSmooth)
+            return
+        slope_1 = (x3 - x1) / (y3 - y1)
+        slope_2 = (x3 - x2) / (y3 - y2)
+        for i in range(y1, y3, step):
+            # color smoothing
+            color1 = p1.getColor()
+            color2 = p1.getColor()
+            if doSmooth:
+                progress1 = (i - y1) / (y3 - y1)
+                r1, g1, b1 = tuple(
+                    np.add(
+                        np.subtract(
+                            arr[2].getColor().getRGB(), arr[0].getColor().getRGB()
+                        ) * progress1, 
+                        arr[0].getColor().getRGB()
+                    )
+                )
+                color1 = ColorType(r1, g1, b1)
+                progress2 = (i - y2) / (y3 - y2)
+                r2, g2, b2 = tuple(
+                    np.add(
+                        np.subtract(
+                            arr[2].getColor().getRGB(), arr[1].getColor().getRGB()
+                        ) * progress2, 
+                        arr[1].getColor().getRGB()
+                    )
+                )
+                color2 = ColorType(r2, g2, b2)
+
+            x_left = int((i - y1) * slope_1 + x1)
+            x_right = int((i - y2) * slope_2 + x2)
+            if x_left == x_right:
+                self.drawPoint(buff, Point([x_left, i], color1))
+            else:
+                self.drawLine(buff, Point([x_left, i], color1), Point([x_right, i], color2), doSmooth)
         return
 
     # test for lines lines in all directions
