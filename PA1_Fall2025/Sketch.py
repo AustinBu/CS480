@@ -138,8 +138,20 @@ class Sketch(CanvasBase):
                 print("draw a line from ", self.points_l[-1], " -> ", self.points_l[-2])
             # TODO 0: uncomment this and comment out drawPoint when you finished the drawLine function 
             self.drawLine(self.buff, self.points_l[-2], self.points_l[-1], self.doSmooth, self.doAA, self.doAAlevel)
+            # self.drawRectangle(self.buff, self.points_l[-2], self.points_l[-1])
             # self.drawPoint(self.buff, self.points_l[-1]) 
             self.points_l.clear()
+
+    def drawRectangle(self, buff: Buff, p1: Point, p2: Point):
+        x1, y1 = p1.getCoords()
+        x2, y2 = p2.getCoords()
+
+        x_list = sorted(x1, x2)
+        y_list = sorted(y1, y2)
+
+        for i in range(x_list[0], x_list[1] + 1):
+            for j in range(y_list[0], y_list[1] + 1):
+                self.drawPoint(buff, Point([i, j], p1.getColor()))
 
     # Deal with Mouse Right Button Pressed Interruption
     def Interrupt_MouseR(self, x, y):
@@ -272,37 +284,39 @@ class Sketch(CanvasBase):
         #   1. Only integer is allowed in interpolate point coordinates between p1 and p2
         #   2. Float number is allowed in interpolate point color
         def bresenham(x1, x2, y1, y2, swap):
-            dx = x2 - x1
-            dy = y2 - y1
+            dx = abs(x2 - x1)
+            dy = abs(y2 - y1)
             error = (2 * dy) - dx
             y = y1
-            for i in range(x1, x2+1, 1):
+            x_step = 1 if x2 > x1 else -1
+            y_step = 1 if y2 > y1 else -1
+            for i in range(x1, x2 + x_step, x_step):
                 error += (2 * dy)
                 if error > 0:
-                    y += 1
+                    y += y_step
                     error -= (2 * dx)
                 r, g, b = p1.getColor().getRGB()
                 if doSmooth:
                     r2, g2, b2 = p2.getColor().getRGB()
-                    p = (i - x1) / dx
+                    p = abs(i - x1) / dx
                     r += (r2 - r) * p
                     g += (g2 - g) * p
                     b += (b2 - b) * p
                 if swap:
-                    buff.setPixel(y, i, r, g, b)
+                    self.drawPoint(buff, Point([y, i], ColorType(r, g, b)))
                 else:
-                    buff.setPixel(i, y, r, g, b)
+                    self.drawPoint(buff, Point([i, y], ColorType(r, g, b)))
             return
-        buff.setPoint(p1)
+        self.drawPoint(buff, p1)
         x1, y1 = p1.getCoords()
         x2, y2 = p2.getCoords()
-        if x2 - x1 < y2 - y1:
+        if abs(x2 - x1) < abs(y2 - y1):
             bresenham(y1, y2, x1, x2, True)
         else:
             bresenham(x1, x2, y1, y2, False)
         return
 
-    def drawTriangle(self, buff, p1, p2, p3, doSmooth=True, doAA=False, doAAlevel=4, doTexture=False):
+    def drawTriangle(self, buff: Buff, p1: Point, p2: Point, p3: Point, doSmooth=True, doAA=False, doAAlevel=4, doTexture=False):
         """
         draw Triangle to buff. apply smooth color filling if doSmooth set to true, otherwise fill with first point color
         if doAA is true, apply anti-aliasing to triangle based on doAAlevel given.
@@ -332,6 +346,23 @@ class Sketch(CanvasBase):
         #   2. Polygon scan fill algorithm and the use of barycentric coordinate are not allowed in this function
         #   3. You should be able to support both flat shading and smooth shading, which is controlled by doSmooth
         #   4. For texture-mapped fill of triangles, it should be controlled by doTexture flag.
+
+        # r, g, b = p1.getColor().getRGB()
+        # arr = sorted([p1, p2, p3], key=lambda p: p.getCoords()[1])
+        # x1, y1 = arr[0].getCoords()
+        # x2, y2 = arr[1].getCoords()
+        # x3, y3 = arr[2].getCoords()
+        # out = None
+        # if y1 == y2:
+        #     out = arr[2]
+        # elif y2 == y3:
+        #     out = arr[0]
+        # else:
+        #     x_mid = (y2 - y1) / (y3 - y1) * (x3 - x1)
+        #     p_mid = Point([x_mid, y2], p1.getColor())
+        #     self.drawTriangle(buff, arr[0], arr[1], p_mid)
+        #     self.drawTriangle(buff, arr[1], p_mid, arr[2])
+        #     return
         return
 
     # test for lines lines in all directions
