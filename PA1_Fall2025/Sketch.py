@@ -21,6 +21,7 @@ from Buff import Buff
 from Point import Point
 from ColorType import ColorType
 from CanvasBase import CanvasBase
+from collections import defaultdict
 
 try:
     # From pip package "Pillow"
@@ -286,13 +287,17 @@ class Sketch(CanvasBase):
         #   1. Only integer is allowed in interpolate point coordinates between p1 and p2
         #   2. Float number is allowed in interpolate point color
 
-        def bresenham(x1, x2, y1, y2, swap):
+        def bresenham(x1, x2, y1, y2, swap, buff):
             dx = abs(x2 - x1)
             dy = abs(y2 - y1)
             error = (2 * dy) - dx
             y = y1
             x_step = 1 if x2 > x1 else -1
             y_step = 1 if y2 > y1 else -1
+
+            # for AA, use one dict to keep track of opacity, another for colo
+            dpoint = defaultdict(int)
+            dcolor = {}
             for i in range(x1, x2 + x_step, x_step):
                 error += (2 * dy)
                 if error > 0:
@@ -307,19 +312,43 @@ class Sketch(CanvasBase):
                     b += (b2 - b) * progress
                 if swap:
                     self.drawPoint(buff, Point([y, i], ColorType(r, g, b)))
+                    dpoint[(y // doAAlevel, i // doAAlevel)] += 1
+                    dcolor[(y // doAAlevel, i // doAAlevel)] = (r, g, b)
                 else:
                     self.drawPoint(buff, Point([i, y], ColorType(r, g, b)))
-            return
+                    dpoint[(i // doAAlevel, y // doAAlevel)] += 1
+                    dcolor[(i // doAAlevel, y // doAAlevel)] = (r, g, b)
+            return dpoint, dcolor
+        
+        newbuff = buff
+        point1 = p1
+        point2 = p2
+        # run bresenham on bigger line if AA
+        if doAA:
+            newbuff = Buff(buff.width * doAAlevel, buff.height * doAAlevel)
+            point1 = Point([p1.getCoords()[0] * doAAlevel, p1.getCoords()[1] * doAAlevel], p1.getColor())
+            point2 = Point([p2.getCoords()[0] * doAAlevel, p2.getCoords()[1] * doAAlevel], p2.getColor())
 
         self.drawPoint(buff, p1)
-        x1, y1 = p1.getCoords()
-        x2, y2 = p2.getCoords()
+        x1, y1 = point1.getCoords()
+        x2, y2 = point2.getCoords()
 
         # swap x and y based on slope
+        dp, dc = None, None
         if abs(x2 - x1) < abs(y2 - y1):
-            bresenham(y1, y2, x1, x2, True)
+            dp, dc = bresenham(y1, y2, x1, x2, True, newbuff)
         else:
-            bresenham(x1, x2, y1, y2, False)
+            dp, dc = bresenham(x1, x2, y1, y2, False, newbuff)
+
+        if doAA:
+            for key in dp:
+                x, y = key
+                opacity = dp[key] / doAAlevel
+                r, g, b = dc[key]
+                r = r * opacity
+                g = g * opacity
+                b = b * opacity
+                self.drawPoint(buff, Point([x, y], ColorType(r, g, b)))
         return
 
     def drawTriangle(self, buff: Buff, p1: Point, p2: Point, p3: Point, doSmooth=True, doAA=False, doAAlevel=4, doTexture=False):
@@ -428,6 +457,13 @@ class Sketch(CanvasBase):
                 self.drawPoint(buff, Point([x_left, i], color1))
             else:
                 self.drawLine(buff, Point([x_left, i], color1), Point([x_right, i], color2), doSmooth)
+        
+        # redraw perimeter with anti aliasing
+        if doAA:
+            self.drawLine(buff, p1, p2, doSmooth, doAA, doAAlevel)
+            self.drawLine(buff, p2, p3, doSmooth, doAA, doAAlevel)
+            self.drawLine(buff, p1, p3, doSmooth, doAA, doAAlevel)
+
         return
 
     # test for lines lines in all directions
