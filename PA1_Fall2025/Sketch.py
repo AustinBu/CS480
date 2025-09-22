@@ -298,11 +298,8 @@ class Sketch(CanvasBase):
             # for AA, use one dict to keep track of opacity, another for colo
             dpoint = defaultdict(int)
             dcolor = {}
-            for i in range(x1, x2 + x_step, x_step):
-                error += (2 * dy)
-                if error > 0:
-                    y += y_step
-                    error -= (2 * dx)
+            i = x1
+            while True:
                 r, g, b = p1.getColor().getRGB()
                 if doSmooth:
                     r2, g2, b2 = p2.getColor().getRGB()
@@ -311,34 +308,42 @@ class Sketch(CanvasBase):
                     g += (g2 - g) * progress
                     b += (b2 - b) * progress
                 if swap:
-                    self.drawPoint(buff, Point([y, i], ColorType(r, g, b)))
-                    dpoint[(y // doAAlevel, i // doAAlevel)] += 1
-                    dcolor[(y // doAAlevel, i // doAAlevel)] = (r, g, b)
+                    if doAA:
+                        dpoint[(y // doAAlevel, i // doAAlevel)] += 1
+                        dcolor[(y // doAAlevel, i // doAAlevel)] = (r, g, b)
+                    else:
+                        self.drawPoint(buff, Point([y, i], ColorType(r, g, b)))
                 else:
-                    self.drawPoint(buff, Point([i, y], ColorType(r, g, b)))
-                    dpoint[(i // doAAlevel, y // doAAlevel)] += 1
-                    dcolor[(i // doAAlevel, y // doAAlevel)] = (r, g, b)
+                    if doAA:
+                        dpoint[(i // doAAlevel, y // doAAlevel)] += 1
+                        dcolor[(i // doAAlevel, y // doAAlevel)] = (r, g, b)
+                    else:
+                        self.drawPoint(buff, Point([i, y], ColorType(r, g, b)))
+                if error >= 0:
+                    y += y_step
+                    error -= (2 * dx)
+                if i == x2:
+                    break
+                i += x_step
+                error += (2 * dy)
             return dpoint, dcolor
-        
-        newbuff = buff
+
         point1 = p1
         point2 = p2
         # run bresenham on bigger line if AA
         if doAA:
-            newbuff = Buff(buff.width * doAAlevel, buff.height * doAAlevel)
             point1 = Point([p1.getCoords()[0] * doAAlevel, p1.getCoords()[1] * doAAlevel], p1.getColor())
             point2 = Point([p2.getCoords()[0] * doAAlevel, p2.getCoords()[1] * doAAlevel], p2.getColor())
 
-        self.drawPoint(buff, p1)
         x1, y1 = point1.getCoords()
         x2, y2 = point2.getCoords()
 
         # swap x and y based on slope
         dp, dc = None, None
         if abs(x2 - x1) < abs(y2 - y1):
-            dp, dc = bresenham(y1, y2, x1, x2, True, newbuff)
+            dp, dc = bresenham(y1, y2, x1, x2, True, buff)
         else:
-            dp, dc = bresenham(x1, x2, y1, y2, False, newbuff)
+            dp, dc = bresenham(x1, x2, y1, y2, False, buff)
 
         if doAA:
             for key in dp:
@@ -382,29 +387,35 @@ class Sketch(CanvasBase):
         #   3. You should be able to support both flat shading and smooth shading, which is controlled by doSmooth
         #   4. For texture-mapped fill of triangles, it should be controlled by doTexture flag.
 
-        # sort points by y coordinate, ascending 
+        # sort points by y coordinate, ascending
         arr = sorted([p1, p2, p3], key=lambda p: p.getCoords()[1])
         x1, y1 = arr[0].getCoords()
         x2, y2 = arr[1].getCoords()
         x3, y3 = arr[2].getCoords()
+        color = p1.getColor()
         if y1 == y2:
             # bottom to top
             step = 1
-            self.drawLine(buff, p1, p2, doSmooth)
-            self.drawPoint(buff, p3)
+            if not doSmooth:
+                self.drawLine(buff, Point(arr[0].getCoords(), color), arr[1], doSmooth)
+                self.drawPoint(buff, Point(arr[2].getCoords(), color))
+            else:
+                self.drawLine(buff, arr[0], arr[1], doSmooth)
+                self.drawPoint(buff, arr[2])
         elif y2 == y3:
             # top to bottom, swap p1 and p3
-            temp = arr[0]
-            arr[0] = arr[2]
-            arr[2] = temp
+            arr.reverse()
             x1, y1 = arr[0].getCoords()
             x3, y3 = arr[2].getCoords()
             step = -1
-            self.drawLine(buff, p2, p3, doSmooth)
-            self.drawPoint(buff, p1)
+            if not doSmooth:
+                self.drawLine(buff, Point(arr[0].getCoords(), color), arr[1], doSmooth)
+                self.drawPoint(buff, Point(arr[2].getCoords(), color))
+            else:
+                self.drawLine(buff, arr[0], arr[1], doSmooth)
+                self.drawPoint(buff, arr[2])
         else:
             # color smoothing
-            color = p1.getColor()
             if doSmooth:
                 progress = (y2 - y1) / (y3 - y1)
                 r, g, b = tuple(
@@ -418,10 +429,23 @@ class Sketch(CanvasBase):
                 color = ColorType(r, g, b)
 
             # split triangle and call function again
-            x_mid = (y2 - y1) * (x3 - x1) / (y3 - y1) + x1
-            p_mid = Point([int(x_mid), y2], color)
+            x_mid = round((y2 - y1) * (x3 - x1) / (y3 - y1) + x1)
+            p_mid = Point([x_mid, y2], color)
             self.drawTriangle(buff, p_mid, arr[0], arr[1], doSmooth)
             self.drawTriangle(buff, p_mid, arr[1], arr[2], doSmooth)
+            
+            # redraw perimeter with anti aliasing
+            if doAA:
+                if not doSmooth:
+                    color = p1.getColor()
+                    self.drawLine(buff, Point(p1.getCoords(), color), Point(p2.getCoords(), color), False, True, doAAlevel)
+                    self.drawLine(buff, Point(p2.getCoords(), color), Point(p3.getCoords(), color), False, True, doAAlevel)
+                    self.drawLine(buff, Point(p3.getCoords(), color), Point(p1.getCoords(), color), False, True, doAAlevel)
+                else:
+                    self.drawLine(buff, p1, p2, True, True, doAAlevel)
+                    self.drawLine(buff, p2, p3, True, True, doAAlevel)
+                    self.drawLine(buff, p3, p1, True, True, doAAlevel)
+
             return
         slope_1 = (x3 - x1) / (y3 - y1)
         slope_2 = (x3 - x2) / (y3 - y2)
@@ -451,19 +475,12 @@ class Sketch(CanvasBase):
                 )
                 color2 = ColorType(r2, g2, b2)
 
-            x_left = int((i - y1) * slope_1 + x1)
-            x_right = int((i - y2) * slope_2 + x2)
+            x_left = round((i - y1) * slope_1 + x1)
+            x_right = round((i - y2) * slope_2 + x2)
             if x_left == x_right:
                 self.drawPoint(buff, Point([x_left, i], color1))
             else:
                 self.drawLine(buff, Point([x_left, i], color1), Point([x_right, i], color2), doSmooth)
-        
-        # redraw perimeter with anti aliasing
-        if doAA:
-            self.drawLine(buff, p1, p2, doSmooth, doAA, doAAlevel)
-            self.drawLine(buff, p2, p3, doSmooth, doAA, doAAlevel)
-            self.drawLine(buff, p1, p3, doSmooth, doAA, doAAlevel)
-
         return
 
     # test for lines lines in all directions
