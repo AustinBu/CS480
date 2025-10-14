@@ -392,7 +392,7 @@ class Sketch(CanvasBase):
         x1, y1 = arr[0].getCoords()
         x2, y2 = arr[1].getCoords()
         x3, y3 = arr[2].getCoords()
-        color = p1.getColor()
+        color = p3.getColor()
         if y1 == y2:
             # bottom to top
             step = 1
@@ -431,13 +431,13 @@ class Sketch(CanvasBase):
             # split triangle and call function again
             x_mid = round((y2 - y1) * (x3 - x1) / (y3 - y1) + x1)
             p_mid = Point([x_mid, y2], color)
-            self.drawTriangle(buff, p_mid, arr[0], arr[1], doSmooth)
-            self.drawTriangle(buff, p_mid, arr[1], arr[2], doSmooth)
+            self.drawTriangle(buff, arr[0], arr[1], p_mid, doSmooth)
+            self.drawTriangle(buff, arr[1], arr[2], p_mid, doSmooth)
             
             # redraw perimeter with anti aliasing
             if doAA:
                 if not doSmooth:
-                    color = p1.getColor()
+                    color = p3.getColor()
                     self.drawLine(buff, Point(p1.getCoords(), color), Point(p2.getCoords(), color), False, True, doAAlevel)
                     self.drawLine(buff, Point(p2.getCoords(), color), Point(p3.getCoords(), color), False, True, doAAlevel)
                     self.drawLine(buff, Point(p3.getCoords(), color), Point(p1.getCoords(), color), False, True, doAAlevel)
@@ -451,8 +451,8 @@ class Sketch(CanvasBase):
         slope_2 = (x3 - x2) / (y3 - y2)
         for i in range(y1, y3, step):
             # color smoothing
-            color1 = p1.getColor()
-            color2 = p1.getColor()
+            color1 = p3.getColor()
+            color2 = p3.getColor()
             if doSmooth:
                 progress1 = (i - y1) / (y3 - y1)
                 r1, g1, b1 = tuple(
