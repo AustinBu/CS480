@@ -451,11 +451,11 @@ class Sketch(CanvasBase):
             self.update()
         if keycode in [wx.WXK_UP]:
             # Increase rotation angle
-            self.Interrupt_Scroll(1)
+            self.Interrupt_Scroll(10)
             self.update()
         if keycode in [wx.WXK_DOWN]:
             # Decrease rotation angle
-            self.Interrupt_Scroll(-1)
+            self.Interrupt_Scroll(-10)
             self.update()
         if keycode in [wx.WXK_ESCAPE]:
             # exit component editing mode
@@ -494,6 +494,8 @@ class Sketch(CanvasBase):
             self.cDict['hat'].rotate(90, self.cDict['hat'].vAxis)
             self.cDict['leftArm1'].rotate(-90, self.cDict['leftArm1'].wAxis)
             self.cDict['rightArm1'].rotate(90, self.cDict['rightArm1'].wAxis)
+            self.cDict['neck'].rotate(12, self.cDict['neck'].uAxis)
+            self.cDict['body'].rotate(180, self.cDict['body'].uAxis)
         if chr(keycode) in "3":
             # hug
             for c in self.components:
@@ -504,12 +506,18 @@ class Sketch(CanvasBase):
             self.cDict['hat'].rotate(60, self.cDict['hat'].vAxis)
             self.cDict['leftArm1'].rotate(-90, self.cDict['leftArm1'].uAxis)
             self.cDict['rightArm1'].rotate(-90, self.cDict['rightArm1'].uAxis)
+            self.cDict['leftArm1'].rotate(-20, self.cDict['leftArm1'].wAxis)
+            self.cDict['rightArm1'].rotate(20, self.cDict['rightArm1'].wAxis)
+            self.cDict['rightArm2'].rotate(-20, self.cDict['rightArm2'].wAxis)
+            self.cDict['rightArm3'].rotate(-20, self.cDict['rightArm3'].wAxis)
             self.cDict['leftFoot'].rotate(-15, self.cDict['leftFoot'].vAxis)
             self.cDict['rightFoot'].rotate(15, self.cDict['rightFoot'].vAxis)
+            self.cDict['neck'].rotate(-8, self.cDict['neck'].uAxis)
         if chr(keycode) in "4":
             # walk1
             for c in self.components:
-                c.reset()            
+                if c != self.cDict['body']:
+                    c.reset()            
             self.cDict['leftEar'].rotate(-15, self.cDict['leftEar'].wAxis)
             self.cDict['rightEar'].rotate(5, self.cDict['rightEar'].wAxis)
             self.cDict['hat'].rotate(-90, self.cDict['hat'].uAxis)
@@ -518,11 +526,13 @@ class Sketch(CanvasBase):
             self.cDict['rightArm1'].rotate(30, self.cDict['rightArm1'].uAxis)
             self.cDict['leftFoot'].rotate(0, self.cDict['leftFoot'].uAxis)
             self.cDict['rightFoot'].rotate(15, self.cDict['rightFoot'].uAxis)
+            self.cDict['body'].rotate(10, self.cDict['body'].vAxis)
         if chr(keycode) in "5":
             # walk2
             for c in self.components:
-                c.reset()
-            self.cDict['leftEar'].rotate(10, self.cDict['leftEar'].wAxis)
+                if c != self.cDict['body']:
+                    c.reset()    
+            self.cDict['leftEar'].rotate(-10, self.cDict['leftEar'].wAxis)
             self.cDict['rightEar'].rotate(10, self.cDict['rightEar'].wAxis)
             self.cDict['hat'].rotate(-90, self.cDict['hat'].uAxis)
             self.cDict['hat'].setCurrentAngle(90, self.cDict['hat'].vAxis)
@@ -530,10 +540,13 @@ class Sketch(CanvasBase):
             self.cDict['rightArm1'].rotate(0, self.cDict['rightArm1'].uAxis)
             self.cDict['leftFoot'].rotate(0, self.cDict['leftFoot'].uAxis)
             self.cDict['rightFoot'].rotate(0, self.cDict['rightFoot'].uAxis)
+            self.cDict['body'].setCurrentAngle(-5, self.cDict['body'].uAxis)
+            self.cDict['body'].rotate(10, self.cDict['body'].vAxis)
         if chr(keycode) in "6":
             # walk3
             for c in self.components:
-                c.reset()            
+                if c != self.cDict['body']:
+                    c.reset()              
             self.cDict['leftEar'].rotate(5, self.cDict['leftEar'].wAxis)
             self.cDict['rightEar'].rotate(15, self.cDict['rightEar'].wAxis)
             self.cDict['hat'].rotate(-90, self.cDict['hat'].uAxis)
@@ -542,7 +555,34 @@ class Sketch(CanvasBase):
             self.cDict['rightArm1'].rotate(-30, self.cDict['rightArm1'].uAxis)
             self.cDict['leftFoot'].rotate(15, self.cDict['leftFoot'].uAxis)
             self.cDict['rightFoot'].rotate(0, self.cDict['rightFoot'].uAxis)
-
+            self.cDict['body'].rotate(10, self.cDict['body'].vAxis)
+        if chr(keycode) in "7":
+            # jump1
+            for c in self.components:
+                c.reset()              
+            self.cDict['leftEar'].rotate(-30, self.cDict['leftEar'].wAxis)
+            self.cDict['rightEar'].rotate(30, self.cDict['rightEar'].wAxis)
+            self.cDict['hat'].rotate(-90, self.cDict['hat'].uAxis)
+            self.cDict['hat'].setCurrentAngle(0, self.cDict['hat'].vAxis)
+            self.cDict['leftArm1'].rotate(-30, self.cDict['leftArm1'].uAxis)
+            self.cDict['rightArm1'].rotate(-30, self.cDict['rightArm1'].uAxis)
+            self.cDict['leftFoot'].rotate(-5, self.cDict['leftFoot'].uAxis)
+            self.cDict['rightFoot'].rotate(-5, self.cDict['rightFoot'].uAxis)
+            self.cDict['body'].rotate(10, self.cDict['body'].uAxis)
+        if chr(keycode) in "8":
+            # jump2
+            for c in self.components:
+                c.reset()              
+            self.cDict['leftEar'].rotate(-5, self.cDict['leftEar'].wAxis)
+            self.cDict['rightEar'].rotate(5, self.cDict['rightEar'].wAxis)
+            self.cDict['hat'].rotate(-90, self.cDict['hat'].uAxis)
+            self.cDict['hat'].setCurrentAngle(90, self.cDict['hat'].vAxis)
+            self.cDict['leftArm1'].rotate(30, self.cDict['leftArm1'].uAxis)
+            self.cDict['rightArm1'].rotate(30, self.cDict['rightArm1'].uAxis)
+            self.cDict['leftFoot'].rotate(15, self.cDict['leftFoot'].uAxis)
+            self.cDict['rightFoot'].rotate(15, self.cDict['rightFoot'].uAxis)
+            self.cDict['body'].rotate(-10, self.cDict['body'].uAxis)
+            self.cDict['body'].setCurrentPosition(Point((0, 0.5, -1)))
 if __name__ == "__main__":
     print("This is the main entry! ")
     app = wx.App(False)
