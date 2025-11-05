@@ -17,6 +17,7 @@ import time
 
 import numpy as np
 
+from ModelLinkage import Prey, Predator
 from Point import Point
 from CanvasBase import CanvasBase
 import ColorType
@@ -377,12 +378,32 @@ class Sketch(CanvasBase):
         if chr(keycode) in "rR":
             # reset viewing angle
             self.viewing_quaternion = Quaternion()
+            for c in self.vivarium.components[1:]:
+                self.vivarium.delObjInTank(c)
+            fly1 = Prey(self, Point((0,0,0)), self.shaderProg)
+            fly1.initialize()
+            self.vivarium.addNewObjInTank(fly1)
+            fly2 = Prey(self, Point((0.5,0.5,0.5)), self.shaderProg)
+            fly2.initialize()
+            self.vivarium.addNewObjInTank(fly2)
+            frog = Predator(self, Point((1,1,1)), self.shaderProg)
+            frog.initialize()
+            self.vivarium.addNewObjInTank(frog)
             self.update()
+
         
         # A test scene with only one (1) predator and one (1) prey
         if chr(keycode) in "tT":
             # reset viewing angle
             self.viewing_quaternion = Quaternion()
+            for c in self.vivarium.components[1:]:
+                self.vivarium.delObjInTank(c)
+            fly = Prey(self, Point((0,0,0)), self.shaderProg)
+            fly.initialize()
+            self.vivarium.addNewObjInTank(fly)
+            frog = Predator(self, Point((1,1,1)), self.shaderProg)
+            frog.initialize()
+            self.vivarium.addNewObjInTank(frog)
             self.update()
 
 

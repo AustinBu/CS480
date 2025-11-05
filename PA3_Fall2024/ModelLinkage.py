@@ -8,9 +8,9 @@ First version at 09/28/2021
 Modified by Daniel Scrivener 08/2022
 """
 import random
-
+import numpy as np
 from Component import Component
-from Shapes import Cube
+from Shapes import Cube, Sphere, Cone, Cylinder
 from Point import Point
 import ColorType as Ct
 from EnvironmentObject import EnvironmentObject
@@ -53,26 +53,39 @@ except ImportError:
 #         3. The predator and prey should have distinguishable different colors.
 #         4. You are welcome to reuse your PA2 creature in this assignment.
 
-class Linkage(Component, EnvironmentObject):
+class Prey(Component, EnvironmentObject):
     """
     A Linkage with animation enabled and is defined as an object in environment
     """
     components = None
     rotation_speed = None
     translation_speed = None
+    step_size = 0.01
 
     def __init__(self, parent, position, shaderProg):
-        super(Linkage, self).__init__(position)
+        self.parent = parent
+        super(Prey, self).__init__(position)
+        direction = np.random.random(3)
+        # direction = [1, 0, 0]
+        self.direction = direction / np.linalg.norm(direction)
+
+        self.head = Sphere(Point((0, 0, 0)), shaderProg, [0.2, 0.1, 0.1], Ct.BLACK)
+        self.eyeL = Sphere(Point((0.2, 0.1, 0.05)), shaderProg, [0.05, 0.05, 0.05], Ct.WHITE)
+        self.head.addChild(self.eyeL)
+
+        self.eyeR = Sphere(Point((0.2, 0.1, -0.05)), shaderProg, [0.05, 0.05, 0.05], Ct.WHITE)
+        self.head.addChild(self.eyeR)
+        
         arm1 = ModelArm(parent, Point((0, 0, 0)), shaderProg, 0.1)
         arm2 = ModelArm(parent, Point((0, 0, 0)), shaderProg, 0.1)
-        arm2.setDefaultAngle(120, arm2.vAxis)
-        arm3 = ModelArm(parent, Point((0, 0, 0)), shaderProg, 0.1)
-        arm3.setDefaultAngle(240, arm3.vAxis)
+        arm2.setDefaultAngle(180, arm2.uAxis)
+        arm2.setDefaultAngle(180, arm2.vAxis)
 
-        self.components = arm1.components + arm2.components + arm3.components
-        self.addChild(arm1)
-        self.addChild(arm2)
-        self.addChild(arm3)
+        self.components = arm1.components + arm2.components
+        self.head = self.head
+        self.addChild(self.head)
+        self.head.addChild(arm1)
+        self.head.addChild(arm2)
 
         self.rotation_speed = []
         for comp in self.components:
@@ -83,17 +96,10 @@ class Linkage(Component, EnvironmentObject):
             self.rotation_speed.append([0.5, 0, 0])
 
         self.bound_center = Point((0, 0, 0))
-        self.bound_radius = 0.1 * 4
+        self.bound_radius = 0.2
         self.species_id = 1
 
     def animationUpdate(self):
-        ##### TODO 2: Animate your creature!
-        # Requirements:
-        #   1. Set reasonable joints limit for your creature
-        #   2. The linkages should move back and forth in a periodic motion, as the creatures move about the vivarium.
-        #   3. Your creatures should be able to move in 3 dimensions, not only on a plane.
-
-        # create periodic animation for creature joints
         for i, comp in enumerate(self.components):
             comp.rotate(self.rotation_speed[i][0], comp.uAxis)
             comp.rotate(self.rotation_speed[i][1], comp.vAxis)
@@ -104,34 +110,118 @@ class Linkage(Component, EnvironmentObject):
                 self.rotation_speed[i][1] *= -1
             if comp.wAngle in comp.wRange:
                 self.rotation_speed[i][2] *= -1
-        self.vAngle = (self.vAngle + 3) % 360
-
-        ##### BONUS 6: Group behaviors
-        # Requirements:
-        #   1. Add at least 5 creatures to the vivarium and make it possible for creatures to engage in group behaviors,
-        #   for instance flocking together. This can be achieved by implementing the
-        #   [Boids animation algorithms](http://www.red3d.com/cwr/boids/) of Craig Reynolds.
 
         self.update()
 
     def stepForward(self, components, tank_dimensions, vivarium):
+        nextPos = self.currentPos.coords + (self.direction * self.step_size)
+        potential_force = self.calculatePotentialForce(self.env_obj_list)
+        new_direction_vector = self.direction + potential_force
+        self.direction = new_direction_vector / np.linalg.norm(new_direction_vector)
+        
+        nextPos = self.currentPos.coords + (self.direction * self.step_size)
+        for other in self.env_obj_list:
+            if other is self or not isinstance(other, EnvironmentObject):
+                continue
+            
+            if self.checkCollision(other):
+                if other.species_id == 2:
+                    self.parent.vivarium.delObjInTank(self) 
+                    return
+                
+                elif other.species_id == 1:
+                    self.direction = self.reflectDirection(other)
+                    nextPos = self.currentPos.coords + (self.direction * self.step_size)
+                    break
+        for i in range(3):
+            if (abs(nextPos[i]) + self.bound_radius) >= tank_dimensions[i] / 2:
+                self.direction[i] *= -1
+                nextPos[i] = self.currentPos.coords[i] + self.direction[i] * self.step_size
+        self.rotateDirection(self.direction)
+        self.setCurrentPosition(Point(nextPos))
 
-        ##### TODO 3: Interact with the environment
-        # Requirements:
-        #   1. Your creatures should always stay within the fixed size 3D "tank". You should do collision detection
-        #   between the creature and the tank walls. When it hits the tank walls, it should turn and change direction to stay
-        #   within the tank.
-        #   2. Your creatures should have a prey/predator relationship. For example, you could have a bug being chased
-        #   by a spider, or a fish eluding a shark. This means your creature should react to other creatures in the tank.
-        #       1. Use potential functions to change its direction based on other creatures’ location, their
-        #       inter-creature distances, and their current configuration.
-        #       2. You should detect collisions between creatures.
-        #           1. Predator-prey collision: The prey should disappear (get eaten) from the tank.
-        #           2. Collision between the same species: They should bounce apart from each other. You can use a
-        #           reflection vector about a plane to decide the after-collision direction.
-        #       3. You are welcome to use bounding spheres for collision detection.
 
-        pass
+class Predator(Component, EnvironmentObject):
+    """
+    Predator
+    """
+    components = None
+    rotation_speed = [1, 0, 0]
+    translation_speed = None
+    step_size = 0.012
+
+    def __init__(self, parent, position, shaderProg):
+        super(Predator, self).__init__(position)
+        direction = np.random.random(3)
+        self.direction = direction / np.linalg.norm(direction)
+
+        self.body = Sphere(Point((0, 0, 0)), shaderProg, [0.3, 0.2, 0.2], Ct.GREEN)
+        self.addChild(self.body)
+
+        self.head = Sphere(Point((0, 0.15, 0.25)), shaderProg, [0.15, 0.15, 0.15], Ct.GREEN)
+        self.body.addChild(self.head)
+
+        self.eyeL = Sphere(Point((0.07, 0.1, 0.05)), shaderProg, [0.05, 0.05, 0.05], Ct.WHITE)
+        self.head.addChild(self.eyeL)
+
+        self.eyeR = Sphere(Point((-0.07, 0.1, 0.05)), shaderProg, [0.05, 0.05, 0.05], Ct.WHITE)
+        self.head.addChild(self.eyeR)
+
+        self.legL_pivot = Sphere(Point((0.15, -0.1, -0.15)), shaderProg, [0.01, 0.01, 0.01])
+        self.body.addChild(self.legL_pivot)
+        self.legL = Cylinder(Point((0, 0, 0)), shaderProg, [0.05, 0.25, 0.05], Ct.DARKGREEN)
+        self.legL_pivot.addChild(self.legL)
+
+        self.legR_pivot = Sphere(Point((-0.15, -0.1, -0.15)), shaderProg, [0.01, 0.01, 0.01])
+        self.body.addChild(self.legR_pivot)
+        self.legR = Cylinder(Point((0, 0, 0)), shaderProg, [0.05, 0.25, 0.05], Ct.DARKGREEN)
+        self.legR_pivot.addChild(self.legR)
+
+        self.legL_pivot.setRotateExtent(self.legL.uAxis, -35, 35)
+        self.legR_pivot.setRotateExtent(self.legR.uAxis, -35, 35)
+        self.components = [self.legL_pivot, self.legR_pivot]
+
+        self.body.default_vAngle = 90
+
+        self.bound_center = Point((0, 0, 0))
+        self.bound_radius = 0.5
+        self.species_id = 2
+
+    def animationUpdate(self):
+        for comp in self.components:
+            comp.rotate(self.rotation_speed[0], comp.uAxis)
+            if comp.uAngle in comp.uRange:
+                self.rotation_speed[0] *= -1
+        self.update()
+
+    def stepForward(self, components, tank_dimensions, vivarium):
+        potential_force = self.calculatePotentialForce(self.env_obj_list)
+        new_direction_vector = self.direction + potential_force
+        self.direction = new_direction_vector / np.linalg.norm(new_direction_vector)
+
+        nextPos = self.currentPos.coords + (self.direction * self.step_size)
+        for other in self.env_obj_list:
+            if other is self or not isinstance(other, EnvironmentObject):
+                continue
+
+            if self.checkCollision(other):
+                
+                if other.species_id == 1:
+                    self.step_size *= 1.05
+                    self.step_size = min(self.step_size, 0.02)
+                    break 
+                
+                elif other.species_id == 2:
+                    self.direction = self.reflectDirection(other)
+                    nextPos = self.currentPos.coords + (self.direction * self.step_size)
+                    break
+        nextPos = self.currentPos.coords + (self.direction * self.step_size)
+        for i in range(3):
+            if (abs(nextPos[i]) + self.bound_radius) >= tank_dimensions[i] / 2:
+                self.direction[i] *= -1
+                nextPos[i] = self.currentPos.coords[i] + self.direction[i] * self.step_size
+        self.setCurrentPosition(Point(nextPos))
+        self.rotateDirection(self.direction)
 
 class ModelArm(Component):
     """
