@@ -125,6 +125,11 @@ class Sketch(CanvasBase):
     MOUSE_ROTATE_SPEED = 1
     MOUSE_SCROLL_SPEED = 2.5
 
+    # flags
+    ambientFlag = True
+    diffuseFlag = True
+    specularFlag = True
+
     def __init__(self, parent):
         """
         Init everything. You should set your model here.
@@ -185,6 +190,10 @@ class Sketch(CanvasBase):
         self.shaderProg.setMat4("model", np.identity(4))
         self.shaderProg.setVec3("viewPosition", np.array(self.getCameraPos()))
         self.shaderProg.setBool("imageFlag", self.ImageModeOn)
+
+        self.shaderProg.setBool("ambientFlag", True)
+        self.shaderProg.setBool("diffuseFlag", True)
+        self.shaderProg.setBool("specularFlag", True)
 
     def getCameraPos(self):
         ct = math.cos(self.cameraTheta)
@@ -409,10 +418,17 @@ class Sketch(CanvasBase):
             self.ImageModeOn = not self.ImageModeOn
             self.shaderProg.setBool("imageFlag", self.ImageModeOn)
         if chr(keycode) in "nN":
-            print(self.scene.children)
             for c in self.scene.children:
                 c.setRenderingRouting("normal")
-
+        if chr(keycode) in "sS":
+            self.specularFlag = not self.specularFlag
+            self.shaderProg.setBool("specularFlag", self.specularFlag)
+        if chr(keycode) in "dD":
+            self.diffuseFlag = not self.diffuseFlag
+            self.shaderProg.setBool("diffuseFlag", self.diffuseFlag)
+        if chr(keycode) in "aA":
+            self.ambientFlag = not self.ambientFlag
+            self.shaderProg.setBool("ambientFlag", self.ambientFlag)
         # TODO 4.2 is at here
         # TODO 5.3 is at here
 

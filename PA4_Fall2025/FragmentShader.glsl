@@ -52,6 +52,10 @@ uniform vec3 iMouse;
 uniform float iTime;
 out vec4 FragColor;
 
+uniform bool ambientFlag;
+uniform bool diffuseFlag;
+uniform bool specularFlag;
+
 void mainImage( out vec4 fragColor, in vec2 fragCoord )
 {
     ////////// BONUS Course Extra Credit Assignment: SDF visualization and more
@@ -97,7 +101,54 @@ void main()
         //   This part will be implemented in OpenGL Shading Language. Your code should iterate through 
         //   all lights in the Light array.
 
-        
+        vec3 N = vNormal;
+        vec3 V = normalize(viewPosition - vPos);
+        vec3 ambient = material.ambient.rgb * sceneAmbient;
+        vec3 diffuse = vec3(0.0);
+        vec3 specular = vec3(0.0);
+
+        for (int i = 0; i < MAX_LIGHT_NUM; i++) {
+            Light L = light[i];
+            
+            vec3 Ldir;
+            float attenuation = 1.0;
+
+            if (L.infiniteOn) {
+                Ldir = normalize(-L.infiniteDirection);
+            } else {
+                Ldir = normalize(L.position - vPos);
+            }
+
+            // diffuse
+            float diff = max(dot(N, Ldir), 0.0);
+            vec3 diffContrib = diff * material.diffuse.rgb * L.color.rgb;
+
+            // specular
+            vec3 R = reflect(-Ldir, N);
+            float spec = max(dot(V, R), 0.0);
+            if (diff > 0.0)
+                spec = pow(spec, material.highlight);
+            vec3 specContrib = spec * material.specular.rgb * L.color.rgb;
+
+            if (L.spotOn) {
+                float theta = dot(normalize(-L.spotDirection), Ldir);
+                if (theta < cos(L.spotAngleLimit)) {
+                    diffContrib = vec3(0.0);
+                    specContrib = vec3(0.0);
+                } else {
+                    float dist = length(L.position - vPos);
+                    float radial = 1.0 / (L.spotRadialFactor[0] +
+                                        L.spotRadialFactor[1] * dist +
+                                        L.spotRadialFactor[2] * pow(dist, 2.0));
+                    diffContrib *= theta * radial;
+                    specContrib *= theta * radial;
+                }
+            }
+
+            diffuse += diffContrib;
+            specular += specContrib;
+        }
+
         ////////// TODO 4: Set up lights
         // Requirements:
         //   * Use the Light struct which is defined above and the provided Light class to implement 
@@ -106,8 +157,18 @@ void main()
         //   * In the Sketch.py file Interrupt_keyboard method, bind keyboard interfaces that allows 
         //   the user to toggle on/off specular, diffuse, and ambient with keys S, D, A.
 
-        results[ri] = result;
-        ri+=1;
+        vec3 resultColor = vec3(0.0, 0.0, 0.0);
+        if (ambientFlag) {
+            resultColor += ambient;
+        } 
+        if (diffuseFlag) {
+            resultColor += diffuse;
+        }
+        if (specularFlag) {
+            resultColor += specular;
+        }
+        results[ri] = vec4(clamp(resultColor, 0.0, 1.0), 1.0);
+        ri += 1;
     }
     
     // Reserved for rendering with vertex color, routing name is "vertex"

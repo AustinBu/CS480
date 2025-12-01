@@ -46,7 +46,7 @@ class Light:
         if spotDirection is not None:
             self.spotOn = True
             self.setSpotDirection(spotDirection)
-            self.setSpotRadialFactor(spotRadialFactor if (spotRadialFactor is not None) else np.array((0, 0, 0)))
+            self.setSpotRadialFactor(spotRadialFactor if (spotRadialFactor is not None) else np.array((1.0, 0, 0)))
         else:
             self.spotOn = False
             self.spotDirection = np.array((0, 0, 0))
