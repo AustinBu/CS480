@@ -408,6 +408,10 @@ class Sketch(CanvasBase):
         if chr(keycode) in "iI":
             self.ImageModeOn = not self.ImageModeOn
             self.shaderProg.setBool("imageFlag", self.ImageModeOn)
+        if chr(keycode) in "nN":
+            print(self.scene.children)
+            for c in self.scene.children:
+                c.setRenderingRouting("normal")
 
         # TODO 4.2 is at here
         # TODO 5.3 is at here
