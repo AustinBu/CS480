@@ -82,6 +82,45 @@ class DisplayableEllipsoid(Displayable):
         self.slices = slices
         self.color = color
 
+        v_data = []
+
+        for i, phi in enumerate(np.linspace(-np.pi/2, np.pi/2, stacks)):
+            row = []
+            for j, theta in enumerate(np.linspace(-np.pi, np.pi, slices+1)):
+                x = radiusX * np.cos(phi) * np.cos(theta)
+                y = radiusY * np.cos(phi) * np.sin(theta)
+                z = radiusZ * np.sin(phi)
+                pos = [x, y, z]
+
+                nx = np.cos(phi) * np.cos(theta) / (radiusX**2)
+                ny = np.cos(phi) * np.sin(theta) / (radiusY**2)
+                nz = np.sin(phi) / (radiusZ**2)
+                normal = np.array([nx, ny, nz])
+                normal = (normal / np.linalg.norm(normal)).tolist()
+
+                u = (theta + np.pi) / (2 * np.pi)
+                v = (phi + np.pi/2) / np.pi
+                uv = [u, v]
+
+                row.append(pos + normal + list(color) + uv)
+
+            v_data.append(row)
+
+        tris = []
+        for st in range(stacks - 1):
+            for sl in range(slices):
+                sl_next = sl + 1
+                st_next = st + 1
+
+                tris.append(v_data[st][sl])
+                tris.append(v_data[st_next][sl])
+                tris.append(v_data[st][sl_next])
+
+                tris.append(v_data[st_next][sl])
+                tris.append(v_data[st_next][sl_next])
+                tris.append(v_data[st][sl_next])
+
+        self.vertices = np.array(tris, dtype=np.float32)
         # if doing texcoords: will need to pad one more column for slice seam,
         # to assign correct texture coord
         self.vertices = np.zeros(0)

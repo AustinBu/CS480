@@ -88,9 +88,14 @@ class DisplayableSphere(Displayable):
                 nz = np.sin(phi)
                 normal = [nx, ny, nz]
                 pos = [radius * nx, radius * ny, radius * nz]
-                uv = [0, 0]
-                # stack.append(pos + normal + [*color] + uv)
-                stack.append(pos + normal + col + uv)
+
+                # uv mapping
+                u = (theta + np.pi) / (2 * np.pi)
+                v = (phi + np.pi/2) / np.pi
+                uv = [u, v]
+
+                stack.append(pos + normal + [*color] + uv)
+                # stack.append(pos + normal + col + uv)
 
             v_data.append(stack)
 

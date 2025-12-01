@@ -80,10 +80,61 @@ class DisplayableTorus(Displayable):
         self.rings = rings
         self.color = color
 
-        # if doing texcoords: we need to pad one more row for both nsides and rings, to assign correct texture coord to them
-        self.vertices = np.zeros(0)
+        R = outerRadius
+        r = innerRadius
 
+        # angles
+        ringAngles = np.linspace(0, 2*np.pi, rings + 1)
+        sideAngles = np.linspace(0, 2*np.pi, nsides + 1)
+        vdata = []
+
+        for i, theta in enumerate(ringAngles):
+            row = []
+            for j, phi in enumerate(sideAngles):
+
+                # position
+                cosPhi = np.cos(phi)
+                sinPhi = np.sin(phi)
+                cosTheta = np.cos(theta)
+                sinTheta = np.sin(theta)
+
+                x = (R + r * cosPhi) * cosTheta
+                y = (R + r * cosPhi) * sinTheta
+                z =  r * sinPhi
+                pos = [x, y, z]
+
+                # normal
+                nx = cosPhi * cosTheta
+                ny = cosPhi * sinTheta
+                nz = sinPhi
+                normal = [nx, ny, nz]
+
+                # uv mapping
+                u = i / rings
+                v = j / nsides
+                uv = [0, 0]
+
+                row.append(pos + normal + list(color) + uv)
+
+            vdata.append(row)
+
+        tris = []
+        for i in range(rings):
+            for j in range(nsides):
+                i1 = i + 1
+                j1 = j + 1
+
+                tris.append(vdata[i][j])
+                tris.append(vdata[i1][j])
+                tris.append(vdata[i][j1])
+
+                tris.append(vdata[i1][j])
+                tris.append(vdata[i1][j1])
+                tris.append(vdata[i][j1])
+
+        self.vertices = np.array(tris, dtype=np.float32)
         self.indices = np.zeros(0)
+
 
     def draw(self):
         self.vao.bind()

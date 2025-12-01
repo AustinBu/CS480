@@ -55,7 +55,7 @@ class SceneOne(Scene):
         torus.rotate(90, torus.uAxis)
         self.addChild(torus)
 
-        sphere = Component(Point((0.75, 0, 0.75)), DisplayableSphere(shaderProg, 0.5, 8, 8, ColorType.SOFTGREEN))
+        sphere = Component(Point((0.75, 0, 0.75)), DisplayableSphere(shaderProg, 0.5, 36, 36, ColorType.SOFTGREEN))
         m3 = Material(np.array((0.0, 0.1, 0.05, 1.0)), np.array((0, 0.6, 0.3, 1)),
                       np.array((0, 0.2, 0.1, 1)), 4)
         sphere.setMaterial(m3)
