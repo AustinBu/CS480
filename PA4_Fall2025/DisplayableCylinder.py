@@ -128,7 +128,7 @@ class DisplayableCylinder(Displayable):
             p0 = [x0, halfH, y0]
             p1 = [x1, halfH, y1]
 
-            # [0, 1]
+            # center + ([-radius, radius] -> [0, 1])
             u0 = 0.5 + x0 / (2 * radius)
             v0 = 0.5 + y0 / (2 * radius)
             u1 = 0.5 + x1 / (2 * radius)

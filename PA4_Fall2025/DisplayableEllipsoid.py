@@ -98,6 +98,7 @@ class DisplayableEllipsoid(Displayable):
                 normal = np.array([nx, ny, nz])
                 normal = (normal / np.linalg.norm(normal)).tolist()
 
+                # uv mapping same as sphere
                 u = (theta + np.pi) / (2 * np.pi)
                 v = (phi + np.pi/2) / np.pi
                 uv = [u, v]

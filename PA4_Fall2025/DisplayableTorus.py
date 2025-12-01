@@ -112,7 +112,7 @@ class DisplayableTorus(Displayable):
                 # uv mapping
                 u = i / rings
                 v = j / nsides
-                uv = [0, 0]
+                uv = [u, v]
 
                 row.append(pos + normal + list(color) + uv)
 
