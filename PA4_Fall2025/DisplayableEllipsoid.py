@@ -84,7 +84,7 @@ class DisplayableEllipsoid(Displayable):
 
         v_data = []
 
-        for i, phi in enumerate(np.linspace(-np.pi/2, np.pi/2, stacks)):
+        for _, phi in enumerate(np.linspace(-np.pi/2, np.pi/2, stacks)):
             row = []
             for j, theta in enumerate(np.linspace(-np.pi, np.pi, slices+1)):
                 x = radiusX * np.cos(phi) * np.cos(theta)
@@ -124,8 +124,6 @@ class DisplayableEllipsoid(Displayable):
         self.vertices = np.array(tris, dtype=np.float32)
         # if doing texcoords: will need to pad one more column for slice seam,
         # to assign correct texture coord
-        self.vertices = np.zeros(0)
-
         self.indices = np.zeros(0)
 
     def draw(self):

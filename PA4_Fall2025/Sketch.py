@@ -22,6 +22,7 @@ from GLProgram import GLProgram
 from GLBuffer import VAO, VBO, EBO, Texture
 import GLUtility
 from SceneOne import SceneOne
+from SceneTwo import SceneTwo
 
 try:
     import wx
@@ -129,6 +130,8 @@ class Sketch(CanvasBase):
     ambientFlag = True
     diffuseFlag = True
     specularFlag = True
+    scenes = []
+    sceneCount = 0
 
     def __init__(self, parent):
         """
@@ -175,6 +178,7 @@ class Sketch(CanvasBase):
         self.basisAxes.initialize()
 
         self.switchScene(SceneOne(self.shaderProg))
+
 
         gl.glClearColor(*self.backgroundColor, 1.0)
         gl.glClearDepth(1.0)
@@ -400,9 +404,14 @@ class Sketch(CanvasBase):
         if keycode in [wx.WXK_RETURN]:
             self.update()
         if keycode in [wx.WXK_LEFT]:
-            self.update()
+            self.sceneCount -= 1
+            if self.sceneCount < 0:
+                self.sceneCount += 2
+            self.showScene()
         if keycode in [wx.WXK_RIGHT]:
-            self.update()
+            self.sceneCount += 1
+            self.sceneCount = self.sceneCount % 2
+            self.showScene()
         if keycode in [wx.WXK_UP]:
             self.Interrupt_Scroll(1)
             self.update()
@@ -420,6 +429,7 @@ class Sketch(CanvasBase):
         if chr(keycode) in "nN":
             for c in self.scene.children:
                 c.setRenderingRouting("normal")
+        # TODO 4.2 is at here
         if chr(keycode) in "sS":
             self.specularFlag = not self.specularFlag
             self.shaderProg.setBool("specularFlag", self.specularFlag)
@@ -429,8 +439,20 @@ class Sketch(CanvasBase):
         if chr(keycode) in "aA":
             self.ambientFlag = not self.ambientFlag
             self.shaderProg.setBool("ambientFlag", self.ambientFlag)
-        # TODO 4.2 is at here
         # TODO 5.3 is at here
+        if chr(keycode) in "1":
+            self.scene.toggleLight(0)
+        if chr(keycode) in "2":
+            self.scene.toggleLight(1)
+        if chr(keycode) in "3":
+            self.scene.toggleLight(2)
+
+    def showScene(self):
+        if self.sceneCount == 0:
+            self.switchScene(SceneOne(self.shaderProg))
+        elif self.sceneCount == 1:
+            self.switchScene(SceneTwo(self.shaderProg))
+        self.update()
 
 
 if __name__ == "__main__":
