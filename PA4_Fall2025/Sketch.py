@@ -23,6 +23,7 @@ from GLBuffer import VAO, VBO, EBO, Texture
 import GLUtility
 from SceneOne import SceneOne
 from SceneTwo import SceneTwo
+from SceneThree import SceneThree
 
 try:
     import wx
@@ -406,11 +407,11 @@ class Sketch(CanvasBase):
         if keycode in [wx.WXK_LEFT]:
             self.sceneCount -= 1
             if self.sceneCount < 0:
-                self.sceneCount += 2
+                self.sceneCount += 3
             self.showScene()
         if keycode in [wx.WXK_RIGHT]:
             self.sceneCount += 1
-            self.sceneCount = self.sceneCount % 2
+            self.sceneCount = self.sceneCount % 3
             self.showScene()
         if keycode in [wx.WXK_UP]:
             self.Interrupt_Scroll(1)
@@ -452,6 +453,8 @@ class Sketch(CanvasBase):
             self.switchScene(SceneOne(self.shaderProg))
         elif self.sceneCount == 1:
             self.switchScene(SceneTwo(self.shaderProg))
+        elif self.sceneCount == 2:
+            self.switchScene(SceneThree(self.shaderProg))
         self.update()
 
 
