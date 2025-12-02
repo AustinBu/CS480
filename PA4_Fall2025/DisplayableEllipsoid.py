@@ -84,9 +84,8 @@ class DisplayableEllipsoid(Displayable):
 
         v_data = []
 
-        for _, phi in enumerate(np.linspace(-np.pi/2, np.pi/2, stacks)):
-            row = []
-            for j, theta in enumerate(np.linspace(-np.pi, np.pi, slices+1)):
+        for phi in np.linspace(-np.pi/2, np.pi/2, stacks):
+            for theta in np.linspace(-np.pi, np.pi, slices+1):
                 x = radiusX * np.cos(phi) * np.cos(theta)
                 y = radiusY * np.cos(phi) * np.sin(theta)
                 z = radiusZ * np.sin(phi)
@@ -103,33 +102,31 @@ class DisplayableEllipsoid(Displayable):
                 v = (phi + np.pi/2) / np.pi
                 uv = [u, v]
 
-                row.append(pos + normal + list(color) + uv)
+                v_data.append(pos + normal + [*color] + uv)
+        self.vertices = np.array(v_data)
 
-            v_data.append(row)
-
-        tris = []
+        indexes = []
+        def idx(st, sl):
+            return st * (slices + 1) + sl 
+ 
         for st in range(stacks - 1):
             for sl in range(slices):
                 sl_next = sl + 1
                 st_next = st + 1
 
-                tris.append(v_data[st][sl])
-                tris.append(v_data[st_next][sl])
-                tris.append(v_data[st][sl_next])
+                indexes.append(idx(st, sl))
+                indexes.append(idx(st_next, sl))
+                indexes.append(idx(st, sl_next))
 
-                tris.append(v_data[st_next][sl])
-                tris.append(v_data[st_next][sl_next])
-                tris.append(v_data[st][sl_next])
-
-        self.vertices = np.array(tris, dtype=np.float32)
-        # if doing texcoords: will need to pad one more column for slice seam,
-        # to assign correct texture coord
-        self.indices = np.zeros(0)
+                indexes.append(idx(st_next, sl))
+                indexes.append(idx(st_next, sl_next))
+                indexes.append(idx(st, sl_next))
+        self.indices = np.array(indexes)
 
     def draw(self):
         self.vao.bind()
         # TODO 1.1 is here, switch from vbo to ebo
-        self.vbo.draw()
+        self.ebo.draw()
         self.vao.unbind()
 
     def initialize(self):

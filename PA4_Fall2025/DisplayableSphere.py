@@ -77,11 +77,8 @@ class DisplayableSphere(Displayable):
         self.stacks = stacks
         self.slices = slices
         self.color = color
-
         v_data = []
         for phi in np.linspace(-np.pi/2, np.pi/2, stacks):
-            stack = []
-            col = np.random.random(3).tolist()
             for theta in np.linspace(-np.pi, np.pi, slices+1):
                 nx = np.cos(phi) * np.cos(theta)
                 ny = np.cos(phi) * np.sin(theta)
@@ -94,35 +91,32 @@ class DisplayableSphere(Displayable):
                 v = (phi + np.pi/2) / np.pi # [-pi/2, pi/2] -> [0, 1]
                 uv = [u, v]
 
-                stack.append(pos + normal + [*color] + uv)
-                # stack.append(pos + normal + col + uv)
+                v_data.append(pos + normal + [*color] + uv)
 
-            v_data.append(stack)
+        self.vertices = np.array(v_data)
 
-        tris = []
+        indexes = []
+        def idx(st, sl):
+            return st * (slices + 1) + sl    
+            
         for st in range(stacks - 1):
-            for sl in range(slices + 1):
+            for sl in range(slices):
                 st_next = st+1
                 sl_next = (sl+1) % (slices+1)
 
-                tris.append(v_data[st][sl])
-                tris.append(v_data[st_next][sl])
-                tris.append(v_data[st][sl_next])
+                indexes.append(idx(st, sl))
+                indexes.append(idx(st_next, sl))
+                indexes.append(idx(st, sl_next))
 
-                tris.append(v_data[st_next][sl])
-                tris.append(v_data[st_next][sl_next])
-                tris.append(v_data[st][sl_next])
-
-        self.vertices = np.array(tris)
-
-        # if doing texcoords: will need to pad one more column for slice seam,
-        # to assign correct texture coord
-        self.indices = np.zeros(0)
+                indexes.append(idx(st_next, sl))
+                indexes.append(idx(st_next, sl_next))
+                indexes.append(idx(st, sl_next))
+        self.indices = np.array(indexes)
 
     def draw(self):
         self.vao.bind()
         # TODO 1.1 is here, switch from vbo to ebo
-        self.vbo.draw()
+        self.ebo.draw()
         self.vao.unbind()
 
     def initialize(self):

@@ -86,10 +86,9 @@ class DisplayableTorus(Displayable):
         # angles
         ringAngles = np.linspace(0, 2*np.pi, rings + 1)
         sideAngles = np.linspace(0, 2*np.pi, nsides + 1)
-        vdata = []
+        v_data = []
 
         for i, theta in enumerate(ringAngles):
-            row = []
             for j, phi in enumerate(sideAngles):
 
                 # position
@@ -114,32 +113,31 @@ class DisplayableTorus(Displayable):
                 v = j / nsides
                 uv = [u, v]
 
-                row.append(pos + normal + list(color) + uv)
+                v_data.append(pos + normal + list(color) + uv)
+        self.vertices = np.array(v_data, dtype=np.float32)
 
-            vdata.append(row)
+        indexes = []
+        def idx(st, sl):
+            return st * (nsides + 1) + sl 
+        
+        for st in range(rings):
+            for sl in range(nsides):
+                sl_next = sl + 1
+                st_next = st + 1
 
-        tris = []
-        for i in range(rings):
-            for j in range(nsides):
-                i1 = i + 1
-                j1 = j + 1
+                indexes.append(idx(st, sl))
+                indexes.append(idx(st_next, sl))
+                indexes.append(idx(st, sl_next))
 
-                tris.append(vdata[i][j])
-                tris.append(vdata[i1][j])
-                tris.append(vdata[i][j1])
-
-                tris.append(vdata[i1][j])
-                tris.append(vdata[i1][j1])
-                tris.append(vdata[i][j1])
-
-        self.vertices = np.array(tris, dtype=np.float32)
-        self.indices = np.zeros(0)
-
+                indexes.append(idx(st_next, sl))
+                indexes.append(idx(st_next, sl_next))
+                indexes.append(idx(st, sl_next))
+        self.indices = np.array(indexes)
 
     def draw(self):
         self.vao.bind()
         # TODO 1.1 is here, switch from vbo to ebo
-        self.vbo.draw()
+        self.ebo.draw()
         self.vao.unbind()
 
     def initialize(self):
